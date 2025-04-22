@@ -38,11 +38,13 @@ npm run dev
 
 ## Project Structure
 
+```plaintext
 3d-ui-builder/
-├── components/ # Reusable 3D UI components
-├── pages/ # Next.js pages and routing
-├── styles/ # Global styles and Tailwind configuration
-└── public/ # Static assets
+├── components/     # Reusable 3D UI components
+├── pages/          # Next.js pages and routing
+├── styles/         # Global styles and Tailwind configuration
+└── public/         # Static assets
+```
 
 ## Author
 
