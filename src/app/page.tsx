@@ -1,4 +1,4 @@
-import UIBuilder from "../components/UIBuilder";
+import UIBuilder from "../pages/UIBuilder";
 
 export default function Home() {
   return (

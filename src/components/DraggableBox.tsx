@@ -1,74 +1,68 @@
 "use client";
 
-import { useFrame, useThree } from "@react-three/fiber";
+import { useRef, useState, useEffect } from "react";
 import * as THREE from "three";
-import { useRef } from "react";
 
-export type UIElement = {
-  id: number;
-  type: "button" | "slider" | "text";
+export interface DraggableBoxProps {
+  children: React.ReactNode;
   position: [number, number, number];
-};
+  onDrag: (newPos: [number, number, number]) => void;
+}
 
 export default function DraggableBox({
-  element,
+  children,
+  position,
   onDrag,
-}: {
-  element: UIElement;
-  onDrag: (id: number, position: [number, number, number]) => void;
-}) {
-  const ref = useRef<THREE.Mesh>(null);
-  const { camera, mouse } = useThree();
-  const plane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
-  const offset = useRef(new THREE.Vector3());
-  const raycaster = new THREE.Raycaster();
-  const isDragging = useRef(false);
+}: DraggableBoxProps) {
+  const ref = useRef<THREE.Group>(null);
+  const [dragging, setDragging] = useState(false);
+  const [offset, setOffset] = useState<[number, number, number]>([0, 0, 0]);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.position.set(...position);
+    }
+  }, [position]);
 
   const handlePointerDown = (e: any) => {
     e.stopPropagation();
-    const intersect = new THREE.Vector3();
-    raycaster.setFromCamera(mouse, camera);
-    raycaster.ray.intersectPlane(plane.current, intersect);
-    offset.current.subVectors(ref.current!.position, intersect);
-    isDragging.current = true;
-  };
+    setDragging(true);
+    e.target.setPointerCapture(e.pointerId);
 
-  const handlePointerUp = () => {
-    isDragging.current = false;
-  };
-
-  useFrame(({ mouse }) => {
-    if (isDragging.current) {
-      const intersect = new THREE.Vector3();
-      raycaster.setFromCamera(mouse, camera);
-      raycaster.ray.intersectPlane(plane.current, intersect);
-      const newPos = intersect.add(offset.current);
-      ref.current!.position.copy(newPos);
-      onDrag(element.id, [newPos.x, newPos.y, 0]);
+    const point = e.point;
+    const pos = ref.current?.position;
+    if (pos) {
+      setOffset([point.x - pos.x, point.y - pos.y, point.z - pos.z]);
     }
-  });
+  };
 
-  const geometry = {
-    button: <boxGeometry args={[0.5, 0.2, 0.1]} />,
-    slider: <boxGeometry args={[0.8, 0.1, 0.1]} />,
-    text: <boxGeometry args={[0.6, 0.3, 0.1]} />,
-  }[element.type];
+  const handlePointerMove = (e: any) => {
+    if (!dragging || !ref.current) return;
+    e.stopPropagation();
+    const point = e.point;
+    const newPos: [number, number, number] = [
+      point.x - offset[0],
+      point.y - offset[1],
+      point.z - offset[2],
+    ];
+    ref.current.position.set(...newPos);
+    onDrag(newPos);
+  };
 
-  const color = {
-    button: "blue",
-    slider: "green",
-    text: "red",
-  }[element.type];
+  const handlePointerUp = (e: any) => {
+    e.stopPropagation();
+    setDragging(false);
+    e.target.releasePointerCapture(e.pointerId);
+  };
 
   return (
-    <mesh
+    <group
       ref={ref}
-      position={element.position}
       onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
-      {geometry}
-      <meshStandardMaterial color={color} />
-    </mesh>
+      {children}
+    </group>
   );
 }
